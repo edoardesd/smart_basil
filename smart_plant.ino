@@ -20,13 +20,18 @@
 #define MQTT_BROKER         "ec2-35-166-12-244.us-west-2.compute.amazonaws.com"     
 #define MQTT_PORT            1883     
 #define MQTT_TOPIC          "smart_plant/basil/1"
+#define DELAY_MASTER         60000
+
+#define N_SAMPLES 10
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 /******************* VARIABLES *******************/
-int output_value ;
-int output_value_raw;
+float output_value ;
+float output_value_raw;
+
+int samples[N_SAMPLES];
 
 void setup() {
 
@@ -44,9 +49,9 @@ void setup() {
 
 void loop() {
 
-
-   output_value_raw= analogRead(SENSOR_PIN);
-
+ 
+   output_value_raw = read_moisture();
+   
    //check 550 very wet and 10 dry
    output_value = map(output_value_raw,550,10,0,100);
 
@@ -59,13 +64,31 @@ void loop() {
    
    send_msg(output_value_raw);
    
-   delay(60000);
+   delay(DELAY_MASTER);
 
  }
 
 
 /******************* FUNCTIONS *******************/
 
+float average(){
+  int sum = 0;
+  for (int i = 0; i<N_SAMPLES; i++){
+    sum = sum + samples[i];
+  }
+
+  return sum/N_SAMPLES;
+}
+
+float read_moisture(){
+
+  for (int i = 0; i < N_SAMPLES; i++){
+    samples[i] = analogRead(SENSOR_PIN);
+    delay(10);
+  }
+
+  return average();
+}
 
 bool send_msg(int val){
   ensure_connections();
